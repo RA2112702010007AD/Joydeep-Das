@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "ContactInquiry": {
+      "title": "ContactInquiry",
+      "description": "Details of the corporate inquiries sent to Joydeep Das",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The full name of the sender"
+        },
+        "email": {
+          "type": "string",
+          "description": "The corporate email address of the sender"
+        },
+        "company": {
+          "type": "string",
+          "description": "Optional organization or manufacturer name"
+        },
+        "subject": {
+          "type": "string",
+          "description": "The core topic of inquiry"
+        },
+        "message": {
+          "type": "string",
+          "description": "The message body comprising operational constraints and timeline"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Accurate server timestamp of submission"
+        }
+      },
+      "required": ["name", "email", "message", "createdAt"]
+    }
+  },
+  "firestore": {
+    "contactInquiries/{inquiryId}": {
+      "schema": "ContactInquiry",
+      "description": "Submitted corporate inquiries securely stored in Cloud Firestore"
+    }
+  }
+}

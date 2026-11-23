@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Access control: admins are defined by emails matching Joydeep's specified emails
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email_verified == true && (
+          request.auth.token.email == 'anuragdas.1803@gmail.com' ||
+          request.auth.token.email == 'dasjoydeep71@yahoo.com'
+        )
+      );
+    }
+
+    // Validation helper
+    function isValidInquiry(data) {
+      return data.keys().hasAll(['name', 'email', 'message', 'createdAt']) &&
+             data.keys().size() <= 8 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.email is string && data.email.size() > 0 && data.email.size() <= 150 &&
+             data.message is string && data.message.size() > 0 && data.message.size() <= 5000 &&
+             data.createdAt == request.time &&
+             (!data.keys().hasAny(['userId']) || (data.userId is string && data.userId.size() <= 128)) &&
+             (!data.keys().hasAny(['company']) || (data.company is string && data.company.size() <= 150)) &&
+             (!data.keys().hasAny(['subject']) || (data.subject is string && data.subject.size() <= 150)) &&
+             (!data.keys().hasAny(['notifiedAdmin']) || data.notifiedAdmin is bool);
+    }
+
+    // Match block for the contact inquiries collection
+    match /contactInquiries/{inquiryId} {
+      allow create: if isValidId(inquiryId) && isValidInquiry(request.resource.data);
+      
+      // Enforce secure list and get queries by checking either administrator status or specific author UID match
+      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      
+      // Admins are allowed to delete submissions
+      allow delete: if isAdmin();
+      
+      // No updates are allowed to contact inquiries after submission, preserving record immutable integrity
+      allow update: if false;
+    }
+  }
+}
